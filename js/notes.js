@@ -140,11 +140,14 @@ function bindInput() {
     sy = e.clientY;
     moved = false;
     clearTimeout(timer);
+    // Мышь ставит метку сразу: через setTimeout(0) её снимал pointerup,
+    // приходящий в том же тике при быстром клике, и метка не появлялась.
+    if (e.pointerType === 'mouse') { addNoteAt(sx, sy); return; }
     timer = setTimeout(() => {
       if (moved) return;
       try { if (navigator.vibrate) navigator.vibrate(30); } catch (err) { /* браузер может запретить */ }
       addNoteAt(sx, sy);
-    }, e.pointerType === 'mouse' ? 0 : 550);
+    }, 550);
   });
   el.addEventListener('pointermove', (e) => {
     if (Math.hypot(e.clientX - sx, e.clientY - sy) > 12) {
