@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#101215">
+<title>Ландшафт 3D — СНТ Мадио Озерки, уч. 109</title>
+<style>
+  :root{
+    --bg:#101215; --panel:#171a1f; --panel2:#1e2229; --line:#2b313a;
+    --fg:#e8eaed; --dim:#9aa3af; --acc:#7fb069; --acc2:#c9a227; --warn:#d98346;
+    --shadow:0 8px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--fg);
+    font:13px/1.45 "Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  #view{position:fixed;inset:0}
+  canvas{display:block}
+  #draw{position:fixed;inset:0;pointer-events:none;z-index:5}
+  #draw.on{pointer-events:auto;cursor:crosshair}
+
+  /* ---------- верхняя панель ---------- */
+  #top{position:fixed;top:0;left:0;right:0;height:52px;z-index:20;display:flex;align-items:center;
+    gap:14px;padding:0 14px;background:linear-gradient(180deg,rgba(16,18,21,.96),rgba(16,18,21,.72));
+    border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+  #top .brand{display:flex;flex-direction:column;line-height:1.15;margin-right:6px}
+  #top .brand b{font-size:13.5px;letter-spacing:.2px}
+  #top .brand span{font-size:10.5px;color:var(--dim)}
+  .tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--fg);padding:7px 11px;
+    border-radius:7px;cursor:pointer;font-size:12px;white-space:nowrap;transition:.15s}
+  .btn:hover{background:#262c35;border-color:#3a424e}
+  .btn.on{background:var(--acc);border-color:var(--acc);color:#0f1a0c;font-weight:600}
+  .btn.acc2.on{background:var(--acc2);border-color:var(--acc2);color:#201a02}
+  .sep{width:1px;height:26px;background:var(--line);margin:0 2px}
+  .stat{margin-left:auto;display:flex;gap:16px;font-size:11px;color:var(--dim)}
+  .stat b{color:var(--fg);font-size:12.5px;display:block}
+
+  /* ---------- нижние пресеты ---------- */
+  #views{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:6px;
+    background:rgba(23,26,31,.92);border:1px solid var(--line);border-radius:10px;padding:6px;
+    box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+
+  /* ---------- боковые панели ---------- */
+  .side{position:fixed;top:52px;bottom:0;width:330px;background:var(--panel);border-left:1px solid var(--line);
+    z-index:18;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:var(--shadow)}
+  #spec{right:0;transform:translateX(100%)}
+  #spec.open{transform:none}
+  #layers{left:0;right:auto;width:250px;border-left:none;border-right:1px solid var(--line);transform:translateX(-100%)}
+  #layers.open{transform:none}
+  .side h3{margin:0;padding:13px 14px 11px;font-size:12.5px;letter-spacing:.4px;text-transform:uppercase;
+    color:var(--dim);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .side h3 .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:15px;line-height:1}
+  .side h3 .x:hover{color:var(--fg)}
+  .side .body{overflow-y:auto;flex:1;padding:8px 0 20px}
+  .side .body::-webkit-scrollbar{width:9px}
+  .side .body::-webkit-scrollbar-thumb{background:#2c323b;border-radius:5px}
+
+  /* спецификация */
+  .sum{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 12px}
+  .sum div{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px 9px}
+  .sum b{display:block;font-size:15px;color:var(--acc)}
+  .sum span{font-size:10.5px;color:var(--dim)}
+  .sec{margin:8px 0 0}
+  .sec>h4{margin:0;padding:9px 12px;background:var(--panel2);font-size:11.5px;font-weight:600;
+    cursor:pointer;display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line)}
+  .sec>h4 .n{width:19px;height:19px;border-radius:4px;background:var(--acc);color:#0f1a0c;
+    display:grid;place-items:center;font-size:10.5px;font-weight:700;flex:none}
+  .sec>h4 .ch{margin-left:auto;color:var(--dim);font-size:11px}
+  .sec table{width:100%;border-collapse:collapse;font-size:11.5px}
+  .sec.closed table{display:none}
+  .sec td{padding:5px 8px;border-bottom:1px solid #22262d;vertical-align:top}
+  .sec td:first-child{padding-left:12px;color:#cfd4da}
+  .sec td.u{text-align:right;color:var(--dim);white-space:nowrap;width:42px}
+  .sec td.v{text-align:right;font-variant-numeric:tabular-nums;color:var(--fg);font-weight:600;
+    white-space:nowrap;width:62px;padding-right:12px}
+  .sec tr:hover td{background:#1b1f26}
+  .bal{padding:10px 12px}
+  .bal .row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11.5px}
+  .bal .bar{flex:1;height:7px;background:#23272e;border-radius:4px;overflow:hidden}
+  .bal .bar i{display:block;height:100%;border-radius:4px}
+  .bal .pv{width:52px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+
+  /* слои */
+  .lay{padding:4px 0}
+  .lay label{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;font-size:12px}
+  .lay label:hover{background:var(--panel2)}
+  .lay input{accent-color:var(--acc);width:14px;height:14px}
+  .lay .grp{padding:11px 14px 5px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--dim)}
+  .lay .cnt{margin-left:auto;font-size:10.5px;color:var(--dim)}
+
+  /* карандаш */
+  #pen{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:22;display:none;gap:6px;
+    background:rgba(23,26,31,.95);border:1px solid var(--line);border-radius:9px;padding:6px 8px;
+    align-items:center;box-shadow:var(--shadow)}
+  #pen.on{display:flex}
+  #pen .sw{width:22px;height:22px;border-radius:5px;cursor:pointer;border:2px solid transparent}
+  #pen .sw.on{border-color:#fff}
+  #pen input[type=range]{width:78px;accent-color:var(--acc)}
+  #pen .lbl{font-size:11px;color:var(--dim)}
+
+  #tip{position:fixed;left:12px;bottom:14px;z-index:19;font-size:11px;color:var(--dim);
+    background:rgba(23,26,31,.85);border:1px solid var(--line);border-radius:7px;padding:7px 10px;max-width:310px}
+  #load{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);gap:10px}
+  #load .t{font-size:13px;color:var(--dim)}
+  #load .b{width:230px;height:3px;background:#23272e;border-radius:2px;overflow:hidden}
+  #load .b i{display:block;height:100%;width:30%;background:var(--acc);animation:ld 1.1s infinite}
+  @keyframes ld{0%{margin-left:-30%}100%{margin-left:100%}}
+  #hint{position:fixed;z-index:19;pointer-events:none;background:rgba(16,18,21,.94);border:1px solid var(--line);
+    border-radius:6px;padding:5px 9px;font-size:11.5px;display:none;max-width:260px}
+  #conceptNote{position:fixed;right:12px;top:62px;z-index:19;max-width:320px;font-size:11.5px;
+    line-height:1.5;color:#cfd4da;background:rgba(23,26,31,.93);border:1px solid var(--line);
+    border-left:3px solid var(--acc);border-radius:7px;padding:9px 12px;box-shadow:var(--shadow)}
+  #build{color:var(--acc2)}
+
+  /* ---------- замечания ---------- */
+  #notes{right:0;transform:translateX(100%)}
+  #notes.open{transform:none}
+  #noteList{padding:8px 10px}
+  #noteList .empty{color:var(--dim);font-size:12px;line-height:1.6;padding:14px 6px}
+  .note{display:flex;gap:9px;padding:9px 8px;border-bottom:1px solid #22262d;cursor:pointer}
+  .note:hover{background:var(--panel2)}
+  .note>b{flex:none;width:23px;height:23px;border-radius:50%;background:#d93c30;color:#fff;
+    display:grid;place-items:center;font-size:12px}
+  .note.done>b{background:#5a8c50}
+  .note .t{font-size:12.5px;line-height:1.4}
+  .note .p{display:block;color:var(--dim);font-size:10.5px;margin-top:3px}
+  .noteBar{display:flex;gap:6px;padding:9px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .noteBar .btn{flex:1;min-width:92px;font-size:11.5px}
+  .noteModal{position:fixed;inset:0;z-index:60;background:rgba(8,10,13,.62);
+    display:grid;place-items:center;padding:16px;backdrop-filter:blur(3px)}
+  .noteModal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    width:min(460px,100%);padding:14px 15px 13px;box-shadow:var(--shadow)}
+  .noteModal h4{margin:0 0 4px;font-size:14px;display:flex;align-items:center}
+  .noteModal h4 .cl{margin-left:auto;cursor:pointer;color:var(--dim);font-size:17px}
+  .noteModal .meta{color:var(--dim);font-size:11px;margin-bottom:9px}
+  .noteModal textarea{width:100%;min-height:104px;background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:13px/1.45 inherit;resize:vertical}
+  .noteModal .row{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .noteModal .row label{font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center;margin-right:auto}
+  .noteModal .del{background:#3a2422;border-color:#5d3430}
+  .qrBox{display:grid;place-items:center;padding:14px 0 2px}
+  .qrBox img{image-rendering:pixelated;padding:10px}
+
+  /* ---------- телефон ---------- */
+  @media (max-width: 860px) {
+    #top{height:auto;flex-wrap:wrap;padding:7px 10px;gap:7px}
+    #top .brand b{font-size:12.5px}
+    #top .brand span{font-size:9.5px}
+    #top .sep{display:none}
+    .stat{display:none}
+    .tools{gap:5px}
+    .btn{padding:9px 11px;font-size:12.5px}          /* палец, а не курсор */
+    #views{bottom:8px;left:8px;right:8px;transform:none;overflow-x:auto;
+      justify-content:flex-start;padding:5px;gap:5px}
+    #views .btn{white-space:nowrap}
+    .side{top:0;bottom:0;width:100%;max-width:100%;border-left:none;z-index:40}
+    #layers{width:100%}
+    #conceptNote{display:none}
+    #spec.open ~ #conceptNote{right:12px}
+    #tip{display:none}
+    .sum{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width: 520px) {
+    #top .tools{width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}
+    #top .tools::-webkit-scrollbar{height:0}
+  }
+  #conceptNote b{display:block;color:var(--acc);margin-bottom:3px;font-size:12px}
+  #spec.open ~ #conceptNote{right:342px}
+</style>
+</head>
+<body>
+<div id="view"></div>
+<canvas id="draw"></canvas>
+
+<div id="top">
+  <div class="brand">
+    <b>Благоустройство участка — 3D</b>
+    <span>СНТ «Мадио Озерки», уч. 109 · <span id="build">сборка …</span></span>
+  </div>
+  <div class="sep"></div>
+  <div class="tools">
+    <button class="btn" id="bLayers">Слои</button>
+    <button class="btn" id="bSpec">Спецификация</button>
+    <button class="btn acc2" id="bNotes" title="Замечания: долгое нажатие на модели (телефон) или правый клик">Замечания</button>
+    <div class="sep"></div>
+    <button class="btn acc2" id="bPen">Карандаш</button>
+    <button class="btn" id="bPdf">PDF</button>
+    <div class="sep"></div>
+    <button class="btn" id="bSun">Вечер</button>
+    <button class="btn" id="bRelief">Рельеф: проектный</button>
+    <button class="btn" id="bGreen">Скрыть деревья</button>
+    <button class="btn" id="bLabels">Подписи</button>
+    <button class="btn acc2" id="bElev" title="Высотные отметки (H) · клик по точке — замер">Отметки</button>
+    <button class="btn" id="bDims" title="Размеры участка (D)">Размеры</button>
+    <div class="sep"></div>
+    <button class="btn" id="bSaveProj" title="Выгрузить проект одним JSON — для переноса на другой компьютер">Проект → JSON</button>
+    <button class="btn" id="bLoadProj" title="Загрузить JSON проекта и пересобрать сцену">Загрузить JSON</button>
+    <button class="btn" id="bQR" title="QR-код на этот адрес — открыть на телефоне">QR</button>
+    <div class="sep"></div>
+    <span id="concepts"></span>
+  </div>
+  <div class="stat" id="stat"></div>
+</div>
+
+<div id="pen">
+  <span class="lbl">Цвет</span>
+  <span class="sw on" data-c="#e53935" style="background:#e53935"></span>
+  <span class="sw" data-c="#ffd54f" style="background:#ffd54f"></span>
+  <span class="sw" data-c="#4fc3f7" style="background:#4fc3f7"></span>
+  <span class="sw" data-c="#81c784" style="background:#81c784"></span>
+  <span class="sw" data-c="#ffffff" style="background:#ffffff"></span>
+  <div class="sep"></div>
+  <span class="lbl">Толщина</span>
+  <input type="range" id="penW" min="1" max="14" value="3">
+  <div class="sep"></div>
+  <button class="btn" id="penUndo">Отменить</button>
+  <button class="btn" id="penClear">Очистить</button>
+</div>
+
+<aside class="side" id="layers">
+  <h3>Слои <span class="x" data-close="layers">✕</span></h3>
+  <div class="body lay" id="layBody"></div>
+</aside>
+
+<aside class="side" id="spec">
+  <h3>Спецификация объёмов <span class="x" data-close="spec">✕</span></h3>
+  <div class="body" id="specBody"></div>
+</aside>
+
+<aside class="side" id="notes">
+  <h3>Замечания <span class="x" data-close="notes">✕</span></h3>
+  <div class="body" id="noteList"></div>
+  <div class="noteBar">
+    <button class="btn" id="bNotesExport">Выгрузить текстом</button>
+    <button class="btn" id="bNotesShots">Снимки</button>
+    <button class="btn" id="bNotesClear">Очистить</button>
+  </div>
+</aside>
+
+<div id="views"></div>
+<div id="tip">ЛКМ — поворот · колесо — зум · ПКМ — панорама · клик по объекту — что это<br><b>H</b> — высотные отметки (клик по точке = замер), <b>D</b> — размеры участка, <b>Esc</b> — снять отметки</div>
+<div id="conceptNote"></div>
+<div id="hint"></div>
+
+<div id="load"><div class="t">Сборка модели участка…</div><div class="b"><i></i></div></div>
+
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/" } }
+</script>
+<script type="module" src="./js/app.js"></script>
+<script src="./lib/jspdf.umd.min.js"></script>
+<script src="./lib/qrcode.js"></script>
+</body>
+</html>

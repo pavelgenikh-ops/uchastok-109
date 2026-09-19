@@ -1,0 +1,10 @@
+# не публикуем: тяжёлое, личное и рабочее
+node.exe
+экспорт/
+tmp/
+models/candidates/
+*.log
+*.err
+*.zip
+.port
+site/
