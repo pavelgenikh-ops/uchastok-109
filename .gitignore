@@ -8,3 +8,4 @@ models/candidates/
 *.zip
 .port
 docs-tmp/
+!docs/Landshaft-3D-portable.zip
