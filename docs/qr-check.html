@@ -1,0 +1,16 @@
+﻿<!doctype html><meta charset="utf-8"><title>QR check</title>
+<img id="q" src="qr.png" style="width:240px">
+<pre id="out">декодирую…</pre>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+addEventListener('load', () => {
+  const img = document.getElementById('q');
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height);
+  const r = (typeof jsQR === 'function') ? jsQR(d.data, c.width, c.height) : null;
+  document.getElementById('out').textContent = 'РАСПОЗНАНО: ' + (r ? r.data : 'нет (jsQR ' + (typeof jsQR) + ')');
+});
+</script>
