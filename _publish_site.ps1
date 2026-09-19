@@ -2,7 +2,7 @@
 # ASCII only inside: PowerShell 5.1 reads .ps1 as ANSI and breaks on Cyrillic.
 $ErrorActionPreference = 'Stop'
 $src  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$site = Join-Path $src 'site'
+$site = Join-Path $src 'docs'
 
 if (Test-Path $site) { Remove-Item $site -Recurse -Force }
 New-Item -ItemType Directory -Path $site | Out-Null
@@ -26,6 +26,6 @@ Set-Content -Path $idx -Value $html -Encoding UTF8
 
 $mb = [math]::Round(((Get-ChildItem $site -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 1)
 Write-Host ''
-Write-Host ('Site folder ready: ' + $site)
+Write-Host ('Docs folder ready: ' + $site)
 Write-Host ('Size: ' + $mb + ' MB   Build: ' + $stamp)
-Write-Host 'Next: git add site && git commit && git push'
+Write-Host 'Next: git add -A && git commit -m "update" && git push'
