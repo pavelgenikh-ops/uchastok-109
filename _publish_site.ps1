@@ -22,6 +22,13 @@ $peredacha = U 0x043F,0x0435,0x0440,0x0435,0x0434,0x0430,0x0447,0x0430
 $qr = Join-Path (Join-Path (Split-Path -Parent $src) $peredacha) 'qr.png'
 if (Test-Path $qr) { Copy-Item $qr -Destination (Join-Path $site 'qr.png') -Force }
 
+# Portable archive under a FIXED name: the link in the customer letter points
+# here. The docs folder is rebuilt from scratch every time, so without this
+# copy the download link starts answering 404.
+$zip = Get-ChildItem (Split-Path -Parent $src) -Filter 'Landshaft-3D-portable-*.zip' |
+       Sort-Object LastWriteTime -Descending | Select-Object -First 1
+if ($zip) { Copy-Item $zip.FullName -Destination (Join-Path $site 'Landshaft-3D-portable.zip') -Force }
+
 # build stamp: on Pages there is no server to send the X-Build header
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
 $idx = Join-Path $site 'index.html'
