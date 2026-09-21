@@ -17,6 +17,7 @@ import { VIEWS, LEVELS, SITE, CONCEPTS, WALLS, STEPS } from './design.js';
 import { initUI, renderSpec, setStat } from './ui.js';
 import { downloadProject, pickProjectFile } from './projectio.js';
 import { initNotes, exportNotes, exportShots, clearNotes } from './notes.js';
+import { bindPanel, initBackButton, back as navBack, depth as navDepth } from './nav.js';
 import { showQR } from './qr.js';
 
 let renderer, scene, camera, controls, M, sun, hemi, ambient, sky;
@@ -89,13 +90,8 @@ async function init() {
   });
   //  замечания по модели: долгое нажатие на телефоне, правый клик на компьютере
   initNotes({ scene, camera, controls, renderer, xy2uv });
-  const bN = document.getElementById('bNotes');
-  if (bN) bN.onclick = () => {
-    const el = document.getElementById('notes');
-    const on = el.classList.toggle('open');
-    if (on) document.getElementById('spec')?.classList.remove('open');
-    bN.classList.toggle('on', on);
-  };
+  bindPanel('bNotes', 'notes');
+  initBackButton();
   document.getElementById('bNotesExport')?.addEventListener('click', () => exportNotes());
   document.getElementById('bNotesShots')?.addEventListener('click', (e) => {
     const b = e.target, t = b.textContent;
@@ -127,11 +123,12 @@ async function init() {
   //  горячие клавиши: H / Р — высотные отметки, С — размеры участка,
   //  Esc — снять замеры, поставленные кликом
   addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.ctrlKey || e.altKey || e.metaKey) return;
     const k = e.key.toLowerCase();
     if (k === 'h' || k === 'р') { toggleElev(); e.preventDefault(); }
     else if (k === 'd' || k === 'в') { toggleDims(); e.preventDefault(); }
-    else if (k === 'escape') { if (elevOn) toggleElev(false); }
+    //  Esc закрывает верхнее открытое окно, и только потом снимает отметки
+    else if (k === 'escape') { if (navDepth()) navBack(); else if (elevOn) toggleElev(false); }
   });
   document.getElementById('load').style.display = 'none';
   animate();

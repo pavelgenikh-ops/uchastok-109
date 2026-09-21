@@ -169,6 +169,13 @@
   }
   #conceptNote b{display:block;color:var(--acc);margin-bottom:3px;font-size:12px}
   #spec.open ~ #conceptNote{right:342px}
+  /* «Назад»: показывается, только когда есть что закрыть; на телефоне
+     дублирует системную кнопку, которая раньше выбрасывала из приложения */
+  .btn.back{display:none;background:#2f6b3a;border-color:#3c8049;color:#fff}
+  .btn.back.show{display:inline-block}
+  .side{z-index:40}
+  .side h3{position:sticky;top:0;z-index:2;background:inherit}
+  .noteModal{z-index:60}
 </style>
 </head>
 <body>
@@ -182,6 +189,7 @@
   </div>
   <div class="sep"></div>
   <div class="tools">
+    <button class="btn back" id="bBack" title="Назад — закрыть открытое окно">← Назад</button>
     <button class="btn" id="bLayers">Слои</button>
     <button class="btn" id="bSpec">Спецификация</button>
     <button class="btn acc2" id="bNotes" title="Замечания: долгое нажатие на модели (телефон) или правый клик">Замечания</button>

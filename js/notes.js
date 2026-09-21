@@ -8,6 +8,8 @@
 //  Хранится в localStorage: закрыл вкладку — замечания остались.
 // ============================================================================
 import * as THREE from '../lib/three.module.js';
+import { deliver } from './share.js';
+import { push as navPush, pop as navPop } from './nav.js';
 
 const KEY = 'landshaft109.notes.v1';
 let CTX = null;              // { scene, camera, controls, renderer, xy2uv }
@@ -192,7 +194,10 @@ function openEditor(id) {
   document.body.appendChild(back);
   const ta = back.querySelector('textarea');
   setTimeout(() => ta.focus(), 50);
-  const close = () => back.remove();
+  //  окно живёт в стеке навигации: системная «назад» на телефоне закрывает его,
+  //  а не выкидывает из приложения
+  const close = () => { back.remove(); navPop('noteEditor'); };
+  navPush('noteEditor', () => back.remove());
   back.querySelector('.cl').onclick = close;
   back.onclick = (e) => { if (e.target === back) close(); };
   back.querySelector('.del').onclick = () => {
@@ -250,16 +255,19 @@ export function flyTo(id) {
 // ---------------------------------------------------------------------------
 //  выгрузка: текст + json, отдельно — снимки по каждому замечанию
 // ---------------------------------------------------------------------------
-function download(name, data, type) {
-  const b = data instanceof Blob ? data : new Blob([data], { type: type });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(b);
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+/** короткий человеческий текст — он же уходит в мессенджер, если файлы нельзя */
+function notesAsText() {
+  const lines = notes.map((n, i) =>
+    (i + 1) + '. ' + (n.text || '(без текста)') +
+    '\n   место: ' + (n.place || 'точка на участке') +
+    ', отм. ' + n.z.toFixed(2) + ', u ' + n.u + ' / v ' + n.v +
+    (n.done ? ' — выполнено' : ''));
+  return ['Замечания по 3D-модели, участок 109 (СНТ «Мадио Озерки»)',
+    new Date().toLocaleString('ru-RU') + ', всего ' + notes.length,
+    '', ...lines].join('\n');
 }
 
-export function exportNotes() {
+export async function exportNotes() {
   if (!notes.length) { alert('Замечаний пока нет'); return 0; }
   const d = new Date().toISOString().slice(0, 10);
   const rows = notes.map((n, i) =>
@@ -278,14 +286,22 @@ export function exportNotes() {
     '',
     '---',
     '',
-    'Координаты (u, v) — система участка: u вдоль длинной стороны, 0 у западной границы',
-    'и 43,99 у восточной; v поперёк, 0 у южной границы и 25,06 у северной.',
-    'Отметка абсолютная, ноль чистого пола 1 этажа — 82,95.',
+    'Координаты (u, v) — система участка: u вдоль длинной стороны, 0 у западной границы;',
+    'v поперёк, 0 у южной границы. Отметка абсолютная, ноль чистого пола 1 этажа — 82,95.',
   ]).join('\n');
-  download('замечания-уч109-' + d + '.md', md, 'text/markdown;charset=utf-8');
-  download('замечания-уч109-' + d + '.json',
-    JSON.stringify({ format: 'landshaft-109-notes', version: 1, saved: new Date().toISOString(), notes: notes }, null, 1),
-    'application/json');
+  const json = JSON.stringify(
+    { format: 'landshaft-109-notes', version: 1, saved: new Date().toISOString(), notes: notes }, null, 1);
+
+  //  телефон: системное «Поделиться» — файлы уходят в мессенджер или почту.
+  //  компьютер: обычное скачивание. Раньше тут был только <a download>,
+  //  и на телефоне выгрузка молча пропадала.
+  await deliver([
+    { name: 'замечания-уч109-' + d + '.json', blob: json, type: 'application/json' },
+    { name: 'замечания-уч109-' + d + '.md', blob: md, type: 'text/markdown;charset=utf-8' },
+  ], {
+    title: 'Замечания по модели участка 109',
+    text: notesAsText(),
+  });
   return notes.length;
 }
 
@@ -294,18 +310,32 @@ export async function exportShots(onStep) {
   if (!notes.length) { alert('Замечаний пока нет'); return; }
   const keepP = CTX.camera.position.clone();
   const keepT = CTX.controls.target.clone();
+  const shots = [];
   for (let i = 0; i < notes.length; i++) {
     flyTo(notes[i].id);
     await new Promise((r) => setTimeout(r, 200));
     CTX.renderer.render(CTX.scene, CTX.camera);
     const blob = await new Promise((r) => CTX.renderer.domElement.toBlob(r, 'image/png'));
-    if (blob) download('замечание-' + String(i + 1).padStart(2, '0') + '.png', blob);
+    if (blob) {
+      shots.push({
+        name: 'замечание-' + String(i + 1).padStart(2, '0') + '.png',
+        blob: blob, type: 'image/png',
+      });
+    }
     if (onStep) onStep(i + 1, notes.length);
     await new Promise((r) => setTimeout(r, 150));
   }
   CTX.camera.position.copy(keepP);
   CTX.controls.target.copy(keepT);
   CTX.controls.update();
+  //  отдаём все кадры разом: на телефоне — одним «Поделиться»,
+  //  на компьютере — обычным скачиванием
+  if (shots.length) {
+    await deliver(shots, {
+      title: 'Замечания по модели участка 109 — снимки',
+      text: notesAsText(),
+    });
+  }
 }
 
 export function clearNotes() {

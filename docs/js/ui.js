@@ -2,6 +2,7 @@
 //  Интерфейс: слои, спецификация, карандаш, экспорт PDF
 // ============================================================================
 import * as THREE from 'three';
+import { bindPanel } from './nav.js';
 
 let CTX = null;
 
@@ -113,22 +114,9 @@ function buildViewBar() {
 }
 
 function wireButtons() {
-  const tog = (id, panel) => {
-    document.getElementById(id).onclick = (e) => {
-      const p = document.getElementById(panel);
-      p.classList.toggle('open');
-      e.currentTarget.classList.toggle('on', p.classList.contains('open'));
-    };
-  };
-  tog('bLayers', 'layers');
-  tog('bSpec', 'spec');
-  document.querySelectorAll('[data-close]').forEach(x => {
-    x.onclick = () => {
-      const p = document.getElementById(x.dataset.close);
-      p.classList.remove('open');
-      document.getElementById(x.dataset.close === 'spec' ? 'bSpec' : 'bLayers').classList.remove('on');
-    };
-  });
+  // панели ведёт nav.js: он же обслуживает системную кнопку «назад» на телефоне
+  bindPanel('bLayers', 'layers');
+  bindPanel('bSpec', 'spec');
   const bSun = document.getElementById('bSun');
   bSun.onclick = () => {
     const ev = CTX.toggleSun();

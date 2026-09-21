@@ -3,6 +3,7 @@
 //  Открыл на компьютере, нажал «QR» — отсканировал телефоном, смотришь там же.
 //  Работает и для локального адреса в домашней сети, и для адреса на GitHub Pages.
 // ============================================================================
+import { push as navPush, pop as navPop } from './nav.js';
 
 /** локальный адрес в домашней сети вместо localhost — его поймёт телефон */
 function lanHint() {
@@ -28,8 +29,10 @@ export function showQR() {
       (hint ? '<div class="meta" style="color:#d98346;margin-top:8px">' + hint + '</div>' : '') +
     '</div>';
   document.body.appendChild(back);
-  back.querySelector('.cl').onclick = () => back.remove();
-  back.onclick = (e) => { if (e.target === back) back.remove(); };
+  const close = () => { back.remove(); navPop('qr'); };
+  navPush('qr', () => back.remove());
+  back.querySelector('.cl').onclick = close;
+  back.onclick = (e) => { if (e.target === back) close(); };
 
   const box = back.querySelector('.qrBox');
   try {
