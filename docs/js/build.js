@@ -442,6 +442,43 @@ export function buildLights(M, mode = 'design') {
 export function buildUtility(M, mode = 'design') {
   const g = new THREE.Group();
   g.name = 'ЛОС и инженерные колодцы';
+
+  //  СУЩЕСТВУЮЩИЙ септик по съёмке 17.09.2026: люк с отметкой верха крышки,
+  //  самотёчная канализация от дома (L=16,1 м) и сброс воды (L=7,2 м).
+  //  Заказчик отметил в модели «не нанесён септик» — это он и есть.
+  const ex = SITE_DATA && SITE_DATA.existing;
+  if (ex && ex.septic) {
+    const s = ex.septic;
+    const zLid = s.lidZ;
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(s.d / 2, s.d / 2, 0.12, 24), M.steel);
+    lid.position.set(s.p[0], zLid + 0.06, -s.p[1]);
+    lid.castShadow = true; lid.receiveShadow = true;
+    lid.name = s.name;
+    g.add(lid);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(s.d / 2 + 0.06, 0.05, 6, 24), M.lampBody);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(s.p[0], zLid + 0.02, -s.p[1]);
+    g.add(ring);
+
+    //  трассы показываем лентой по поверхности — глубина заложения 0,2 м,
+    //  в 3D важен сам факт и направление, а не отрисовка траншеи
+    const line = (pts, mat, w) => {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        if (len < 0.05) continue;
+        const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(len, 0.04, w), mat);
+        seg.position.set(mx, groundZ(mx, my, mode) + 0.03, -my);
+        seg.rotation.y = -Math.atan2(b[1] - a[1], b[0] - a[0]);
+        seg.receiveShadow = true;
+        g.add(seg);
+      }
+    };
+    if (ex.sewer) line(ex.sewer.pts, M.steel, 0.22);
+    if (ex.outfall) line(ex.outfall.pts, M.lampBody, 0.16);
+  }
+
   const l = UTILITY.los;
   for (const uu of [l.u[0] + 0.6, l.u[1] - 0.6]) {
     const [x, y] = uv2xy(uu, (l.v[0] + l.v[1]) / 2);

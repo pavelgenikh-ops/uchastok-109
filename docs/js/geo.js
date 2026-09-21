@@ -9,12 +9,17 @@ export let SITE_DATA = null;
 
 // углы участка: D(ЮЗ) C(ЮВ) B(СВ) A(СЗ)
 let D, eU, eV, invDet, uvA, uvB;
+export let uvLim = { u0: 0, u1: 44, v0: 0, v1: 25 };
 
 export function initGeo(site) {
   SITE_DATA = site;
   const B4 = site.boundary;           // [СЗ, СВ, ЮВ, ЮЗ] в порядке обхода
   const A = B4[0], Bc = B4[1], C = B4[2], Dd = B4[3];
-  D = Dd;
+  //  Съёмка 17.09.2026 показала участок длиннее: 67,87 м вместо 43,99.
+  //  Начало отсчёта (u,v) оставляем в прежнем юго-западном углу — иначе всё
+  //  проектное решение в design.js уехало бы на 21,7 м. Западная прирезка
+  //  получает отрицательные u (примерно −21,7 … 0).
+  D = (site.meta && site.meta.uvOrigin) ? site.meta.uvOrigin : Dd;
   const du = [C[0] - Dd[0], C[1] - Dd[1]];
   const dv = [A[0] - Dd[0], A[1] - Dd[1]];
   const lu = Math.hypot(du[0], du[1]), lv = Math.hypot(dv[0], dv[1]);
@@ -22,9 +27,16 @@ export function initGeo(site) {
   eV = [dv[0] / lv, dv[1] / lv];
   const det = eU[0] * eV[1] - eV[0] * eU[1];
   invDet = 1 / det;
-  uvA = lv; uvB = lu;
+  //  габариты участка в (u,v) — считаем по углам, а не по длинам сторон:
+  //  начало отсчёта смещено, и u идёт в минус на западную прирезку
+  const uv = B4.map((p) => xy2uv(p[0], p[1]));
+  uvLim = {
+    u0: Math.min(...uv.map((p) => p[0])), u1: Math.max(...uv.map((p) => p[0])),
+    v0: Math.min(...uv.map((p) => p[1])), v1: Math.max(...uv.map((p) => p[1])),
+  };
+  uvA = uvLim.v1; uvB = uvLim.u1;
   buildTerrain();
-  return { lu, lv };
+  return { lu, lv, uv: uvLim };
 }
 
 /** (u,v) участка → локальные XY */
@@ -82,7 +94,7 @@ function buildTerrain() {
       const x = x0 + i * GRID.step, y = y0 + j * GRID.step;
       const [u, v] = xy2uv(x, y);
       const idx = j * nx + i;
-      if (u < -1 || u > uvB + 1 || v < -1 || v > uvA + 1) continue; // вне участка — как есть
+      if (u < uvLim.u0 - 1 || u > uvLim.u1 + 1 || v < uvLim.v0 - 1 || v > uvLim.v1 + 1) continue; // вне участка — как есть
       design[idx] = designZ(u, v, exist[idx]);
     }
   }
@@ -106,7 +118,7 @@ function buildTerrain() {
     for (let i = 0; i < nx; i++) {
       const x = x0 + i * GRID.step, y = y0 + j * GRID.step;
       const [u, v] = xy2uv(x, y);
-      if (u < -1 || u > uvB + 1 || v < -1 || v > uvA + 1) continue;
+      if (u < uvLim.u0 - 1 || u > uvLim.u1 + 1 || v < uvLim.v0 - 1 || v > uvLim.v1 + 1) continue;
       const idx = j * nx + i;
       let sharp = false;
       for (const w of WALLS) {
@@ -161,8 +173,9 @@ function terraceZ(u, v, zNat) {
     const zt = T.wild.z1 + (T.wild.z0 - T.wild.z1) * t;
     z = zNat * (1 - t * 0.7) + zt * (t * 0.7);
   }
-  // небольшой поперечный уклон к северу для водоотвода (0,5 %)
-  z += (v - uvA / 2) * 0.005;
+  // небольшой поперечный уклон к северу для водоотвода (0,5 %) — только там,
+  // где есть планировка: западную прирезку оставляем как в природе
+  if (u > 0) z += (v - uvA / 2) * 0.005;
   return z;
 }
 
