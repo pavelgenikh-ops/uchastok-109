@@ -215,13 +215,25 @@ export function buildHouse(M) {
   twG.add(box(0.07, 1.02, twL, M.slatDark, [0.035, hh.terrace + 0.51, -twL / 2]));
   twG.add(box(twW, 1.02, 0.07, M.slatDark, [twW / 2, hh.terrace + 0.51, -0.035]));
   twG.add(box(twW * 0.45, 1.02, 0.07, M.slatDark, [twW * 0.225, hh.terrace + 0.51, -twL + 0.035]));
-  // ступени в сад с северного торца: терраса поднята над планировочной отметкой
-  // примерно на 0,88 м, поэтому маршей из трёх ступеней не хватало — они обрывались
-  // в воздухе. Низ марша выходит на площадку П-14, та ведёт на северный обход П-5.
-  for (let i = 0; i < 5; i++)
-    twG.add(box(1.9, 0.175, 0.33, M.deck,
-      [twW * 0.55, hh.terrace - 0.175 * (i + 0.5), -twL - 0.165 - i * 0.33]));
+  //  Ступени с северного торца больше НЕ строятся здесь: теперь это марш Л-2
+  //  из TERR_STEPS, его положение и ширина задаются в design.js (замечание №2).
   root.add(twG);
+
+  //  Продолжение террасы вдоль стены за торцом: по правке 22.09.2026 между
+  //  зданием и ступенями настил идёт дальше, а марш смещён к западному краю.
+  if (H.terrWN) {
+    const tn2 = H.terrWN;
+    const w2 = tn2.u[1] - tn2.u[0], l2 = tn2.v[1] - tn2.v[0];
+    const g2 = new THREE.Group();
+    const [x2, z2] = g(tn2.u[0], tn2.v[0]);
+    g2.position.set(x2, 0, z2);
+    g2.add(box(w2, 0.09, l2, M.deck, [w2 / 2, hh.terrace - 0.045, -l2 / 2]));
+    g2.add(box(w2, plH - 0.12, 0.10, M.plinth, [w2 / 2, -(plH - 0.12) / 2 + hh.terrace, -l2 + 0.05]));
+    g2.add(box(0.10, plH - 0.12, l2, M.plinth, [0.05, -(plH - 0.12) / 2 + hh.terrace, -l2 / 2]));
+    g2.add(box(0.07, 1.02, l2, M.slatDark, [0.035, hh.terrace + 0.51, -l2 / 2]));
+    g2.add(box(w2, 1.02, 0.07, M.slatDark, [w2 / 2, hh.terrace + 0.51, -l2 + 0.035]));
+    root.add(g2);
+  }
 
   // ---------- ТЕРРАСА ЮЖНАЯ под односкатным навесом ----------
   const tn = H.terrS;
