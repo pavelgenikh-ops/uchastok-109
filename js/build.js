@@ -3,7 +3,7 @@
 // ============================================================================
 import * as THREE from '../lib/three.module.js';
 import {
-  SITE, LEVELS, WALLS, STEPS, HOUSE, CARPORT, UTILITY,
+  SITE, LEVELS, WALLS, STEPS, TERR_STEPS, HOUSE, CARPORT, UTILITY,
   PAVING, STEPPING, BEDS, PLANTING, LIGHTS, FENCE, BBQ, pavingFor, steppingFor,
 } from './design.js';
 import { buildBBQZone, bench, stringLights } from './furniture.js';
@@ -433,6 +433,55 @@ export function buildLights(M, mode = 'design') {
   LIGHTS.facade.pts.forEach(p => add(p[0], p[1], 'facade'));
   LIGHTS.spot.pts.forEach(p => add(p[0], p[1], 'spot'));
   g.userData.glows = glows;
+  return g;
+}
+
+// ---------------------------------------------------------------------------
+//  СТУПЕНИ С ТЕРРАС И КРЫЛЬЦА
+//  Настоящие марши: верх — отметка настила, низ — земля перед маршем.
+//  Раньше спуск был обозначен полоской мощения, и ступеней не было видно.
+// ---------------------------------------------------------------------------
+export function buildTerraceSteps(M, mode = 'design') {
+  const g = new THREE.Group();
+  g.name = 'Ступени с террас и крыльца';
+  const DIR = { south: [0, -1], north: [0, 1], west: [-1, 0], east: [1, 0] };
+
+  for (const s of TERR_STEPS) {
+    const d = DIR[s.dir] || DIR.south;
+    const zTop = LEVELS.FF + (s.top || 0);
+    //  землю щупаем в 1,5 м от кромки — там, куда марш приземляется
+    const [gx, gy] = uv2xy(s.u + d[0] * 1.5, s.v + d[1] * 1.5);
+    const zBot = groundZ(gx, gy, mode);
+    const dz = Math.max(0.18, zTop - zBot);
+    const n = Math.max(1, Math.round(dz / 0.17));
+    const rise = dz / n, tread = 0.32;
+
+    const grp = new THREE.Group();
+    const [bx, by] = uv2xy(s.u, s.v);
+    grp.position.set(bx, 0, -by);
+    //  разворачиваем марш: ось X группы смотрит наружу от террасы
+    const extra = { south: -Math.PI / 2, north: Math.PI / 2, west: Math.PI, east: 0 }[s.dir] || 0;
+    grp.rotation.y = uAngle() + extra;
+    grp.name = s.id + ' ' + s.name;
+
+    for (let i = 0; i < n; i++) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(tread + 0.04, rise + 0.08, s.w), M.curb);
+      step.position.set(0.16 + i * tread, zTop - rise * (i + 0.5) - 0.04, 0);
+      step.castShadow = true; step.receiveShadow = true;
+      grp.add(step);
+      const ris = new THREE.Mesh(new THREE.BoxGeometry(0.06, rise, s.w), M.stoneWall);
+      ris.position.set(0.16 + i * tread - tread / 2, zTop - rise * (i + 0.5) - 0.04, 0);
+      ris.receiveShadow = true;
+      grp.add(ris);
+    }
+    //  площадка у подножия, чтобы марш не обрывался в траву
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, s.w + 0.2), M.slab);
+    pad.position.set(0.16 + n * tread + 0.45, zTop - dz - 0.02, 0);
+    pad.receiveShadow = true;
+    grp.add(pad);
+
+    g.add(grp);
+  }
   return g;
 }
 

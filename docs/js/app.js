@@ -7,7 +7,7 @@ import { initGeo, uv2xy, xy2uv, groundZ, groundZuv, stairSpan, terrain, SITE_DAT
 import { makeMaterials } from './materials.js';
 import {
   buildTerrainMesh, buildHardscape, buildStepping, buildBeds, buildLawn,
-  buildWalls, buildFence, buildLights, buildUtility, buildPlanting,
+  buildWalls, buildFence, buildLights, buildUtility, buildTerraceSteps, buildPlanting,
   placeHouse, placeCarport, treeKeeper, onSiteTest, buildBBQ,
 } from './build.js';
 import { buildExisting } from './plants.js';
@@ -155,6 +155,7 @@ function buildScene() {
   L.house = placeHouse(M);
   L.carport = placeCarport(M, reliefMode);
   L.utility = buildUtility(M, reliefMode);
+  L.terrSteps = buildTerraceSteps(M, reliefMode);
   const ex = buildExisting(SITE_DATA.trees, M, (x, y) => groundZ(x, y, reliefMode),
     treeKeeper(CONCEPTS[conceptId]), onSiteTest());
   L.existing = ex.site;   // лес за границей участка не строим — мешает читать проект
