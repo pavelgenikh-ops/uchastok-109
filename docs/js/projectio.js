@@ -6,8 +6,10 @@
 // ============================================================================
 import * as D from './design.js';
 
-const KEYS = ['SITE', 'LEVELS', 'WALLS', 'STEPS', 'HOUSE', 'CARPORT', 'UTILITY',
-  'DRIVE', 'BBQ', 'BASE_PAVING', 'BASE_STEPPING', 'BEDS', 'PLANTING',
+//  TERR_STEPS добавлен 22.09.2026: без него перестановка маршей с террас
+//  не переносилась через JSON и требовала нового архива.
+const KEYS = ['SITE', 'LEVELS', 'WALLS', 'STEPS', 'TERR_STEPS', 'HOUSE', 'CARPORT',
+  'UTILITY', 'DRIVE', 'BBQ', 'BASE_PAVING', 'BASE_STEPPING', 'BEDS', 'PLANTING',
   'LIGHTS', 'IRRIGATION', 'DRAINAGE', 'FENCE', 'CONCEPTS', 'VIEWS'];
 
 /** снимок текущего проектного решения */
