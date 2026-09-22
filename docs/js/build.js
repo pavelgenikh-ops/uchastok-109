@@ -464,12 +464,13 @@ export function buildTerraceSteps(M, mode = 'design') {
     grp.rotation.y = uAngle() + extra;
     grp.name = s.id + ' ' + s.name;
 
+    //  Ступени в цвет террасы: тот же настил, что и сама терраса (правка 22.09.2026)
     for (let i = 0; i < n; i++) {
-      const step = new THREE.Mesh(new THREE.BoxGeometry(tread + 0.04, rise + 0.08, s.w), M.curb);
+      const step = new THREE.Mesh(new THREE.BoxGeometry(tread + 0.04, rise + 0.08, s.w), M.deck);
       step.position.set(0.16 + i * tread, zTop - rise * (i + 0.5) - 0.04, 0);
       step.castShadow = true; step.receiveShadow = true;
       grp.add(step);
-      const ris = new THREE.Mesh(new THREE.BoxGeometry(0.06, rise, s.w), M.stoneWall);
+      const ris = new THREE.Mesh(new THREE.BoxGeometry(0.06, rise, s.w), M.deck);
       ris.position.set(0.16 + i * tread - tread / 2, zTop - rise * (i + 0.5) - 0.04, 0);
       ris.receiveShadow = true;
       grp.add(ris);
