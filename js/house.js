@@ -250,9 +250,11 @@ export function buildHouse(M) {
   const [px, pz] = g(pc.u[0], pc.v[0]);
   pcG.position.set(px, 0, pz);
   pcG.add(box(pcW, 0.09, pcL, M.deck, [pcW / 2, hh.terrace - 0.045, -pcL / 2]));
+  //  Замечание №1 от 22.09.2026: ступени крыльца перенесены НА ТОРЕЦ —
+  //  сход идёт вдоль фасада с северной стороны, а не фронтально на восток.
   for (let i = 0; i < 3; i++)
-    pcG.add(box(0.33, 0.17, pcL * 0.7, M.deck,
-      [pcW + 0.165 + i * 0.33, hh.terrace - 0.17 * (i + 0.5), -pcL / 2]));
+    pcG.add(box(pcW * 0.8, 0.17, 0.33, M.deck,
+      [pcW / 2, hh.terrace - 0.17 * (i + 0.5), -pcL - 0.165 - i * 0.33]));
   pcG.add(box(pcW, 1.02, 0.07, M.slatDark, [pcW / 2, hh.terrace + 0.51, -0.035]));
   pcG.add(box(pcW, 1.02, 0.07, M.slatDark, [pcW / 2, hh.terrace + 0.51, -pcL + 0.035]));
   root.add(pcG);
